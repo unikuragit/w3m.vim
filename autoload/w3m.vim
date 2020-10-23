@@ -1,4 +1,4 @@
-" File: autoload/w3m.vim
+" Filenlautoload/w3m.vim
 " Last Modified: 2012.04.04
 " Author: yuratomo (twitter @yusetomo)
 
@@ -27,6 +27,7 @@ function! w3m#BufWinLeave()
 endfunction
 
 function! w3m#CheckUnderCursor()
+  let linked_url = ''
   let [cl,cc] = [ line('.'), col('.') ]
   let tstart = -1
   let tidx = 0
@@ -38,14 +39,15 @@ function! w3m#CheckUnderCursor()
     let tidx = tidx + 1
   endfor
   if tstart == -1
-    return
+    return linked_url
   endif
 
   let tidx = tstart
   while tidx >= 0
     if b:tag_list[tidx].line != cl
       if tidx > 0
-        echo b:tag_list[tidx-1].attr
+        let linked_url = b:tag_list[tidx-1].attr
+        call s:message('linked URL: ' . linked_url)
       endif
       break
     endif
@@ -54,11 +56,13 @@ function! w3m#CheckUnderCursor()
       continue
     endif
     if has_key(b:tag_list[tidx].attr, 'href')
-      echo b:tag_list[tidx].attr.href
+      let linked_url = b:tag_list[tidx].attr.href
+      call s:message('linked URL: ' . linked_url)
       break
     endif
     let tidx -= 1
   endwhile
+  return linked_url
 endfunction
 
 function! w3m#ShowUsage()
@@ -70,7 +74,7 @@ function! w3m#ShowTitle()
   let cols = winwidth(0) - &numberwidth
 
   " resolve title from cache
-  if has_key(b:history[b:history_index], 'title') 
+  if has_key(b:history[b:history_index], 'title')
     call s:message( strpart(b:history[b:history_index].title, 0, cols - s:message_adjust) )
     return
   endif
@@ -107,14 +111,44 @@ function! w3m#ShowDump()
 endfunction
 
 function! w3m#ShowExternalBrowser()
-  if exists('g:w3m#external_browser') && exists('b:last_url')
-    call s:system(g:w3m#external_browser . ' "' . b:last_url . '"')
+  if exists('b:last_url')
+    call w3m#OpenInExternalBrowser(b:last_url)
+  endif
+endfunction
+
+function! w3m#OpenLinkUnderCursorInExternalBrowser()
+  let url = w3m#CheckUnderCursor()
+  if empty(url)
+    return
+  endif
+
+  if url[0] == '#'
+    if exists('b:last_url')
+      let url = b:last_url . url
+    else
+      return
+    endif
+  else
+    let url = s:resolveUrl(url)
+  endif
+
+  call w3m#OpenInExternalBrowser(url)
+endfunction
+
+function! w3m#OpenInExternalBrowser(url)
+  if exists('g:w3m#external_browser') && !empty(a:url)
+    if a:url[0] == '/'
+      let url = 'file://' . a:url
+    else
+      let url = a:url
+    endif
+    call s:system(g:w3m#external_browser . ' "' . url . '"')
   endif
 endfunction
 
 function! w3m#ShowURL()
   if exists('b:last_url')
-    call s:message(b:last_url)
+    call s:message('current URL: ' . b:last_url)
   endif
 endfunction
 
@@ -126,7 +160,11 @@ endfunction
 
 function! w3m#Reload()
   if exists('b:last_url')
-    call w3m#Open(g:w3m#OPEN_NORMAL, b:last_url)
+    if b:last_url[0] == '/'
+      call w3m#Open(g:w3m#OPEN_NORMAL, 'local', b:last_url)
+    else
+      call w3m#Open(g:w3m#OPEN_NORMAL, b:last_url)
+    endif
   endif
 endfunction
 
@@ -176,7 +214,7 @@ function! w3m#MatchSearchEnd()
   cnoremap <buffer> <ESC> <ESC>
   nnoremap <buffer> <ESC> <ESC>
   if exists('b:last_match_id') && b:last_match_id != -1
-    try 
+    try
       call matchdelete(b:last_match_id)
     catch
     endtry
@@ -471,7 +509,7 @@ function! s:openCurrentHistory()
   call setline(1, b:display_lines)
   call w3m#ShowTitle()
   call s:applySyntax()
-  if has_key(b:history[b:history_index], 'curpos') 
+  if has_key(b:history[b:history_index], 'curpos')
     let [cl,cc] = b:history[b:history_index].curpos
     call cursor(cl, cc)
   endif
@@ -622,7 +660,6 @@ function! s:analizeTag(tag, attr)
     endif
     let idx = na + 1
   endwhile
-
   return tagname
 endfunction
 
@@ -646,7 +683,7 @@ function! s:prepare_buffer()
     let b:click_with_shift = 0
     let b:click_with_ctrl = 0
     let b:last_match_id = -1
-    let b:enable_syntax = 1
+    let b:enable_syntax = g:w3m#syntax
 
     call s:keymap()
     call s:default_highligh()
@@ -802,7 +839,7 @@ if exists('g:w3m#set_hover_on') && g:w3m#set_hover_on > 0
   let g:w3m#set_hover_on = 1
   if has("autocmd")
     if g:w3m#hover_delay_time == 0
-      " everytime the cursor moves in the buffer 
+      " everytime the cursor moves in the buffer
       " normal mode is forcesd by default, so only check normal mode
       au! CursorMoved w3m-*  call s:applyHoverHighlight()
     else
@@ -819,7 +856,7 @@ if exists('g:w3m#set_hover_on') && g:w3m#set_hover_on > 0
     endif
   endfunction
   function! s:applyHoverHighlight()
-    if !exists('g:w3m#set_hover_on') || g:w3m#set_hover_on < 1 
+    if !exists('g:w3m#set_hover_on') || g:w3m#set_hover_on < 1
       " hover-links is turned OFF
       return
     endif
@@ -843,7 +880,7 @@ if exists('g:w3m#set_hover_on') && g:w3m#set_hover_on > 0
         break
       endif
     endfor
-    if exists('b:match_hover_id') 
+    if exists('b:match_hover_id')
       " restore color
       silent! call matchdelete(b:match_hover_id)
       unlet b:match_hover_id
@@ -913,7 +950,7 @@ function! s:tag_input(tidx)
   endif
   let type = b:tag_list[a:tidx].attr.type
 
-  try 
+  try
     call s:tag_input_{tolower(type)}(a:tidx)
   catch /^Vim\%((\a\+)\)\=:E117/
   endtry
@@ -933,12 +970,12 @@ function! s:tag_input_submit(tidx)
   let fid = 0
   while idx >= 0
     if b:tag_list[idx].type == s:TAG_START && stridx(b:tag_list[idx].tagname, 'form') == 0
-     if has_key(b:tag_list[idx].attr,'action') 
+     if has_key(b:tag_list[idx].attr,'action')
        let url = s:resolveUrl(b:tag_list[idx].attr.action)
-       if has_key(b:tag_list[idx].attr,'method') 
+       if has_key(b:tag_list[idx].attr,'method')
          let action = b:tag_list[idx].attr.method
        endif
-       if has_key(b:tag_list[idx].attr,'fid') 
+       if has_key(b:tag_list[idx].attr,'fid')
          let fid = b:tag_list[idx].attr.fid
        endif
        break
@@ -1261,7 +1298,7 @@ function! s:applyEditedInputValues()
         else
           let value = ' '
         endif
-      else 
+      else
         if has_key(item.attr, 'checked')
           let value = '*'
         else
@@ -1440,7 +1477,13 @@ function! s:moveToAnchor(href)
   let aname = a:href[1:]
   for tag in b:tag_list
     if has_key(tag.attr, 'name') && tag.attr.name ==? aname
-      call cursor(tag.line, tag.col) 
+      call cursor(tag.line, tag.col)
+      break
+    elseif has_key(tag.attr, 'id') && tag.attr.id ==# aname
+      call cursor(tag.line, tag.col)
+      break
+    elseif has_key(tag.attr, 'title') && tag.attr.title ==# aname
+      call cursor(tag.line, tag.col)
       break
     endif
   endfor
