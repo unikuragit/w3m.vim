@@ -67,7 +67,7 @@ endfunction
 
 function! w3m#ShowUsage()
   echo "[Usage] :W3m url"
-  echo "example :W3m http://www.yahoo.co.jp"
+  echo "example :W3m https://www.yahoo.co.jp"
 endfunction
 
 function! w3m#ShowTitle()
@@ -1397,7 +1397,7 @@ function! s:nr2hex(nr)
 endfunction
 
 function! s:isHttpURL(str)
-  if stridx(a:str, 'http://') == 0 || stridx(a:str, 'https://') == 0
+  if stridx(a:str, 'https://') == 0 || stridx(a:str, 'https://') == 0
     return 1
   endif
   return 0

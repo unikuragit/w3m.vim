@@ -3,7 +3,7 @@
 " Version: 1.0.0
 " Author: yuratomo (twitter @yusetomo)
 
-let s:engine = w3m#search_engine#Init('msdn', 'http://www.google.com/search?sitesearch=msdn.microsoft.com/library/&q=%s')
+let s:engine = w3m#search_engine#Init('msdn', 'https://www.google.com/search?sitesearch=msdn.microsoft.com/library/&q=%s')
 
 function! s:engine.preproc()
   let s:user_agent_backup = g:user_agent

@@ -3,7 +3,7 @@
 " Version: 1.0.0
 " Author: yuratomo (twitter @yusetomo)
 
-let s:engine = w3m#search_engine#Init('2ch', 'http://find.2ch.net/?STR=%s&COUNT=50&TYPE=TITLE&BBS=ALL')
+let s:engine = w3m#search_engine#Init('2ch', 'https://find.2ch.net/?STR=%s&COUNT=50&TYPE=TITLE&BBS=ALL')
 
 function! s:engine.preproc()
 endfunction

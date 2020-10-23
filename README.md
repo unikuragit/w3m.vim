@@ -7,7 +7,7 @@ w3m.vim is a plugin on vim for w3m that is a console web browser.
 
 Requirements
 ------------
-w3m.vim requires [w3m](http://w3m.sourceforge.net/) to be installed.
+w3m.vim requires [w3m](https://w3m.sourceforge.net/) to be installed.
 
 If w3m is not in your $PATH, you can specify its location in
 your vimrc file.
@@ -100,20 +100,20 @@ Settings
     highlight! link w3mAnchor    Label
 
 ###Use Proxy:###
-    let &HTTP_PROXY='http://xxx.xxx/:8080'
+    let &HTTP_PROXY='https://xxx.xxx/:8080'
 
 ###Set External Browser:###
     let g:w3m#external_browser = 'chrome'
 
 ###Set Home Page:###
-    let g:w3m#homepage = "http://www.google.co.jp/"
+    let g:w3m#homepage = "https://www.google.co.jp/"
 
 ###Specify Key Of Hit-A-Hint:###
     let g:w3m#hit_a_hint_key = 'f'
 
 ###Specify Default Search Engine:###
     let g:w3m#search_engine = 
-        \ 'http://search.yahoo.co.jp/search?search.x=1&fr=top_ga1_sa_124&tid=top_ga1_sa_124&ei=' . &encoding . '&aq=&oq=&p='
+        \ 'https://search.yahoo.co.jp/search?search.x=1&fr=top_ga1_sa_124&tid=top_ga1_sa_124&ei=' . &encoding . '&aq=&oq=&p='
 
 ###Disable Default Keymap:###
 You set as follows if you do not want to use default keymap.
@@ -168,10 +168,10 @@ ScreenShots
 -----------
 
 ###Sample Image1###
-![sample1](http://yuratomo.up.seesaa.net/image/w3mvim_v0.4.0.001.png "sample1")
+![sample1](https://yuratomo.up.seesaa.net/image/w3mvim_v0.4.0.001.png "sample1")
 
 ###Hit-A-Hint###
-![sample1](http://yuratomo.up.seesaa.net/image/w3mvim_v0.4.0.002.png "sample1")
+![sample1](https://yuratomo.up.seesaa.net/image/w3mvim_v0.4.0.002.png "sample1")
 
 
 HISTORY
