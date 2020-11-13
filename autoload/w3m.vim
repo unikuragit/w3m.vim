@@ -469,7 +469,7 @@ function! w3m#Click(shift, ctrl)
     call s:message('not process')
     return
   endif
-  call s:message('processing')
+  "call s:message('processing')
 
   let tidx = tstart
   while tidx >= 0
@@ -1415,7 +1415,8 @@ function! s:normalizeUrl(url)
 endfunction
 
 function! s:neglectNeedlessTags(output)
-  return substitute(a:output,'<[/]\{0,1\}\(_symbol\|_id\|intenal\|pre_int\|img_alt\|nobr\).\{-\}>','','g')
+  " _id is important for anchor based navigation (e.g. <div id='...'>)
+  return substitute(a:output,'<[/]\{0,1\}\(_symbol\|intenal\|pre_int\|img_alt\|nobr\).\{-\}>','','g')
 endfunction
 
 function! s:decordeEntRef(str)
@@ -1473,18 +1474,22 @@ function! s:is_download_target(href)
   return 0
 endfunction
 
+function! s:goToLineColumn(line, col)
+  execute 'normal ' . a:line . 'G' . a:col . '|'
+endfunction
+
 function! s:moveToAnchor(href)
   let aname = a:href[1:]
   for tag in b:tag_list
     if has_key(tag.attr, 'name') && tag.attr.name ==? aname
-      call cursor(tag.line, tag.col)
-      break
+      call s:goToLineColumn(tag.line, tag.col)
+      return
     elseif has_key(tag.attr, 'id') && tag.attr.id ==# aname
-      call cursor(tag.line, tag.col)
-      break
+      call s:goToLineColumn(tag.line, tag.col)
+      return
     elseif has_key(tag.attr, 'title') && tag.attr.title ==# aname
-      call cursor(tag.line, tag.col)
-      break
+      call s:goToLineColumn(tag.line, tag.col)
+      return
     endif
   endfor
 endfunction
