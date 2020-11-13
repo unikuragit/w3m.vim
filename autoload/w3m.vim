@@ -300,6 +300,12 @@ function! w3m#Open(mode, ...)
   if use_filter == 0
     if s:isHttpURL(a:000[0])
       let url = s:normalizeUrl(a:000[0])
+    elseif a:000[0][0:0] ==# '/'
+      let url = s:normalizeUrl(a:000[0])
+    elseif stridx(a:000[0], '../') == 0 || stridx(a:000[0], '..\') == 0
+      let url = s:normalizeUrl(a:000[0])
+    elseif stridx(a:000[0], './') == 0 || stridx(a:000[0], '.\') == 0
+      let url = s:normalizeUrl(a:000[0])
     else
       let url = printf(g:w3m#search_engine, join(a:000, ' '))
     endif
@@ -341,7 +347,12 @@ function! w3m#Open(mode, ...)
 
   "resolve charset from header and body(META)
   let b:charset = &encoding
-  let header = split(s:system(substitute(cmdline, "-halfdump", "-dump_head", "")), '\n')
+  let header = split(s:system(substitute(cmdline, "-halfdump", "-dump_head -o follow_redirection=0", "")), '\n')
+  if s:resolveRedirection(header) == 1
+    call s:message('Redirecting to ' . b:redirection)
+    call w3m#Open(g:w3m#OPEN_NORMAL, b:redirection)
+    return
+  endif
   if s:resolveCharset(header) == 0
     let body = split(s:system(substitute(cmdline, "-halfdump", "-dump_source", "")), '\n')
     let max_analize_line = 20
@@ -382,6 +393,16 @@ function! w3m#Open(mode, ...)
   if anchor != ''
     call s:moveToAnchor(anchor)
   endif
+endfunction
+
+function! s:resolveRedirection(header)
+  let ret = 0
+  let location = filter(a:header, 'v:val =~? "^location"')
+  if len(location) > 0
+    let b:redirection = matchstr(location[0], '\clocation\s*:\s*\zs.*')
+    let ret = 1
+  endif
+  return ret
 endfunction
 
 function! s:resolveCharset(header)
@@ -590,11 +611,11 @@ function! s:analizeOutputs(output_lines)
 endfunction
 
 function! s:resolvTagType(tag)
-  if stridx(a:tag, '<') == 0
-    if stridx(a:tag, '/>') >= 0 && match(a:tag, '=\a') == -1
-      return s:TAG_BOTH
-    elseif stridx(a:tag, '</') == 0
+  if a:tag[0:0] ==# '<'
+    if a:tag[1:1] ==# '/'
       return s:TAG_END
+    elseif stridx(a:tag, '/>') > 0 && match(a:tag, '=\a') == -1
+      return s:TAG_BOTH
     else
       return s:TAG_START
     endif
@@ -654,8 +675,8 @@ function! s:analizeTag(tag, attr)
     let ks = idx
     let ke = eq - 1
 
-    let keyname = strpart(a:tag, ks, ke-ks+1)
-    if strlen(keyname) > 0
+    if ke >= ks
+      let keyname = strpart(a:tag, ks, ke-ks+1)
       let a:attr[tolower(keyname)] = s:decordeEntRef(strpart(a:tag, vs, ve-vs+1))
     endif
     let idx = na + 1
@@ -737,10 +758,10 @@ endfunction
 
 function! s:default_highligh()
   if !hlexists('w3mBold')
-    hi w3mBold gui=bold
+    hi w3mBold cterm=bold gui=bold
   endif
   if !hlexists('w3mUnderline')
-    hi w3mUnderline gui=underline
+    hi w3mUnderline cterm=underline gui=underline
   endif
   if !hlexists('w3mInput')
     highlight! link w3mInput String
@@ -1148,6 +1169,10 @@ function! s:create_command(url, cols)
   if g:user_agent != ''
     call add(command_list, '-o user_agent="' . g:user_agent . '"')
   endif
+  let tab_width = get(g:, 'w3m#tab_width', 0)
+  if tab_width > 0
+    call add(command_list, '-t ' . tab_width)
+  endif
 
   call add(command_list, '"' . a:url . '"')
   let cmdline = join(command_list, ' ') . s:abandon_error
@@ -1397,7 +1422,7 @@ function! s:nr2hex(nr)
 endfunction
 
 function! s:isHttpURL(str)
-  if stridx(a:str, 'https://') == 0 || stridx(a:str, 'https://') == 0
+  if stridx(a:str, 'http://') == 0 || stridx(a:str, 'https://') == 0
     return 1
   endif
   return 0
@@ -1420,6 +1445,11 @@ function! s:neglectNeedlessTags(output)
 endfunction
 
 function! s:decordeEntRef(str)
+  if len(matchstr(a:str, '&[ql#rgaycmn]')) == 0
+    " nothing to substitute
+    return a:str
+  endif
+
   let str = a:str
   let str = substitute(str, '&quot;',   '"', 'g')
   let str = substitute(str, '&#40;',    '(', 'g')
@@ -1436,6 +1466,7 @@ function! s:decordeEntRef(str)
   let str = substitute(str, '&mdash;',  'Å\','g')
   let str = substitute(str, '&ndash;',  'Å\','g')
   let str = substitute(str, '&apos;',   "'", 'g')
+  let str = substitute(str, '&#xb6;',   "ø", 'g')
   return    substitute(str, '&nbsp;',   ' ', 'g')
 endfunction
 
@@ -1481,13 +1512,13 @@ endfunction
 function! s:moveToAnchor(href)
   let aname = a:href[1:]
   for tag in b:tag_list
-    if has_key(tag.attr, 'name') && tag.attr.name ==? aname
+    if get(tag.attr, 'name', '') ==? aname
       call s:goToLineColumn(tag.line, tag.col)
       return
-    elseif has_key(tag.attr, 'id') && tag.attr.id ==# aname
+    elseif get(tag.attr, 'id', '') ==# aname
       call s:goToLineColumn(tag.line, tag.col)
       return
-    elseif has_key(tag.attr, 'title') && tag.attr.title ==# aname
+    elseif get(tag.attr, 'title', '') ==# aname
       call s:goToLineColumn(tag.line, tag.col)
       return
     endif
