@@ -15,6 +15,9 @@ let [g:w3m#OPEN_NORMAL,g:w3m#OPEN_SPLIT,g:w3m#OPEN_TAB,g:w3m#OPEN_VSPLIT] = rang
 if !exists('g:w3m#command')
   let g:w3m#command = 'w3m'
 endif
+if !exists('g:w3m#command_ignore_not_found')
+  let g:w3m#command_ignore_not_found = 1
+endif
 if !exists('g:w3m#option')
   let g:w3m#option = '-o display_charset=' . &encoding . ' -halfdump -o frame=true -o ext_halfdump=1 -o strict_iso2022=0 -o ucs_conv=1'
 endif
@@ -97,7 +100,7 @@ call add(g:w3m#user_agent_list, {'name':'KDDI',    'agent':'KDDI-HI31 UP.Browser
 call add(g:w3m#user_agent_list, {'name':'DoCoMo',  'agent':'D502i	DoCoMo/1.0/D502i	DoCoMo/1.0/D502i/c10'})
 call add(g:w3m#user_agent_list, {'name':'SoftBank','agent':'SoftBank/1.0/911SH/SHJ001/XXXXXXXXXXXXXXXX Browser/NetFront/3.3 Profile/MIDP-2.0 Configuration/CLDC-1.1'})
 
-if !executable(g:w3m#command)
+if !executable(g:w3m#command) && !g:w3m#command_ignore_not_found
   echoerr "w3m is not exist!!"
   finish
 endif
