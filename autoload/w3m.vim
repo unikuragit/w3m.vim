@@ -363,7 +363,13 @@ function! w3m#Open(mode, ...)
   endif
 
   "execute halfdump
-  let outputs = split(s:neglectNeedlessTags(s:system(cmdline)), '\n')
+  let outputs_raw = split(s:neglectNeedlessTags(s:system(cmdline)), '\n')
+
+  "decode unicode charactor
+  let outputs = []
+  for line in outputs_raw
+    call add(outputs, substitute(line, '&#\([xX]\?\)\(\(\d\|[a-fA-F]\)\+\);', '\=submatch(1) ==? ''x'' ? nr2char(''0x'' . submatch(2)) : nr2char(submatch(2))', 'ge'))
+  endfor
 
   "do filter
   if use_filter == 1
